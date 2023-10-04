@@ -15,35 +15,51 @@ fn list_zip_contents(reader: impl Read + Seek) -> zip::result::ZipResult<()> {
     Ok(())
 }
 
-fn buf_to_image(buffer: &[u8]){
-    println!("{:?}", buffer);
-    let len_sqrt = (buffer.len() as f64).sqrt() as u32 + 1;
+fn buf_into_image(buffer: &[u8]){
+    let len_sqrt = (buffer.len() as f64).sqrt() as u32 ;
     let mut image = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(len_sqrt, len_sqrt);
-
-    let mut i = 0;
-    let mut j = 0;
-
-    for buff in buffer{
-        image.put_pixel(i, j, Rgb([*buff,*buff,*buff]));
-        i += 1;
-        if i >= len_sqrt{
-            i = 0;
-            j += 1;
+    let mut x: usize = 0;
+    for i in 0..len_sqrt{
+        for j in 0..len_sqrt{
+            let color = buffer[x];
+            image.put_pixel(i,j, Rgb([color,color,color]));
+            x+=1;
         }
     }
-
-    image.save("./test/output.png").unwrap();
+    image.save("./test/output.jpg").unwrap();
 }
+
+fn image_to_buf(mut image: File)->[u8;1024]{
+    let mut buf = [0; 1024];
+    let err = image.read(&mut buf);
+    let len_sqrt = (buf.len() as f64).sqrt() as u32 / 2;
+    let mut image = ImageBuffer::<Rgb<u8>, Vec<u8>>::from_raw(len_sqrt, len_sqrt, Vec::from(buf)).unwrap();
+
+    let mut x: usize = 0;
+    let mut ret_buf = [0; 1024];
+    for i in 0..len_sqrt{
+        for j in 0..len_sqrt{
+            let pixel = image.get_pixel(i,j);
+            ret_buf[x] = pixel[0];
+            x+=1;
+        }
+    }
+    ret_buf
+}
+
 fn main() {
     let mut file = File::open("./test/test.zip").expect("Blagam no");
     let mut buf = [0; 1024];
     let err = file.read(&mut buf);
+    println!("{:?}", buf);
     err.expect("Reading err");
 
-    // let mut file2 = File::create("./test/test2.zip").expect("pls");
-    // let err2 = file2.write_all(&buf);
-    // err2.expect("Writeing err");
-    // let _ = list_zip_contents(file2);
+    buf_into_image(&buf);
 
-    buf_to_image(&mut buf);
+    let mut image = File::open("./test/output.jpg").expect("Blagam no");
+    let mut file2 = File::create("./test/test2.zip").expect("pls");
+    let mut ret_buf  = image_to_buf(image);
+    println!("{:?}", ret_buf);
+    let err2 = file2.write_all(&ret_buf);
+    err2.expect("Writeing err");
 }
