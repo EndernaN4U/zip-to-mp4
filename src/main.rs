@@ -3,12 +3,6 @@ use std::fs::File;
 use image::{ImageBuffer, Rgb};
 use rand::{thread_rng, Rng};
 
-fn randColor()->u8{
-    let mut rng = thread_rng();
-    let x: u8 = rng.gen();
-    x
-}
-
 fn buf_into_image(buffer: &[u8]){
     let len_sqrt = ((buffer.len() / 3) as f64).sqrt().ceil() as u32;
 
