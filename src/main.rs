@@ -1,19 +1,25 @@
 use std::io::prelude::*;
 use std::fs::File;
 use image::{ImageBuffer, Rgb};
-use image;
+use rand::{thread_rng, Rng};
+
+fn randColor()->u8{
+    let mut rng = thread_rng();
+    let x: u8 = rng.gen();
+    x
+}
 
 fn buf_into_image(buffer: &[u8]){
-    let len_sqrt = (buffer.len() as f64).sqrt() as u32;
+    let len_sqrt = ((buffer.len() / 3) as f64).sqrt().ceil() as u32;
 
     let mut image = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(len_sqrt, len_sqrt);
 
     let mut x: usize = 0;
-    for i in 0..len_sqrt{
+    'outer: for i in 0..len_sqrt{
         for j in 0..len_sqrt{
-            let color = buffer[x];
-            image.put_pixel(i,j, Rgb([color,color,color]));
-            x+=1;
+            if buffer.len() <= x + 2{break 'outer;}
+            image.put_pixel(i,j, Rgb([buffer[x],buffer[x+1],buffer[x+2]]));   
+            x+=3;
         }
     }
     image.save("./test/output.png").unwrap();
@@ -21,7 +27,7 @@ fn buf_into_image(buffer: &[u8]){
 
 fn image_to_buf(path: String)->[u8;1024]{
     let buf = [0; 1024];
-    let len_sqrt = (buf.len() as f64).sqrt() as u32;
+    let len_sqrt = ((buf.len() / 3) as f64).sqrt().ceil() as u32;
 
     let image = image::open(path)
     .expect("Opening err")
@@ -29,11 +35,14 @@ fn image_to_buf(path: String)->[u8;1024]{
 
     let mut x: usize = 0;
     let mut ret_buf = [0; 1024];
-    for i in 0..len_sqrt{
+    'outer: for i in 0..len_sqrt{
         for j in 0..len_sqrt{
             let pixel = image.get_pixel(i,j);
-            ret_buf[x] = pixel[0];
-            x+=1;
+            for k in 0..3{
+                if ret_buf.len() <= x{break 'outer;}
+                ret_buf[x] = pixel[k];
+                x+=1;
+            }  
         }
     }
     ret_buf
